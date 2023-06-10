@@ -4,5 +4,8 @@
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@openzeppelin/contracts": "^4.9.1",
     "hardhat": "^2.14.0"
+  },
+  "dependencies": {
+    "ethers": "^6.5.1"
   }
 }
