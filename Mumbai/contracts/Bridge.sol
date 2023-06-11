@@ -1,11 +1,13 @@
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./tokens/GenericToken.sol";
+import "./tokens/WrappedToken.sol";
 
 contract Bridge is Ownable {
 
-    // a mapping between the address of the contract deployed on Mumbai to the wrapped version on Infura
-    mapping(address => address) mumbaiToInfura; 
+    // a mapping between the address of the contract deployed on Infura to the wrapped version on Mumbai
+    mapping(address => address) infuraToMumbai; 
 
     // a mapping between a user and the amount of tokens they have locked of a specific token
     mapping(address => mapping(address => uint256)) addressToLockedToken;
@@ -24,8 +26,11 @@ contract Bridge is Ownable {
      */
     function lock(address tokenContract, uint256 amount) public {
         // transfer funds from user to bridge
+        GenericToken(tokenContract).transferFrom(msg.sender, address(this), amount);
         // Update addressToLockedToken
+        addressToLockedToken[msg.sender][tokenContract] += amount;
         // Emit event
+        emit TokenLocked(tokenContract, msg.sender, amount);
     }
 
     /**
@@ -34,10 +39,14 @@ contract Bridge is Ownable {
      * @param tokenContract - the address of the token's generic contract
      * @param amount - the amount of token to be released
      */
-    function release(address tokenContract, uint256 amount) public {
+    function release(address tokenContract, address user, uint256 amount) public onlyOwner {
         // transfer funds from bridge to the user
+        require(addressToLockedToken[user][tokenContract] >= amount);
+        GenericToken(tokenContract).transfer(user, amount);
         // update addressToLockedToken
+        addressToLockedToken[user][tokenContract] -= amount;
         // Emit event
+        emit TokenReleased(tokenContract, msg.sender, amount);
     }
 
     /**
@@ -50,8 +59,13 @@ contract Bridge is Ownable {
      */ 
     function claim(address tokenContract, address user, uint256 amount) public onlyOwner {
         // check if a wrapped contract exists via the mapping 'mumbaiToInfura'
-        // If it does not, create a wrapped contract via 'addToken'
+        if(infuraToMumbai[tokenContract] == address(0)) {
+            // If it does not, create a wrapped contract via 'addToken'
+            _addToken(tokenContract);
+        }
         // Then mint the amount to the user and emit an event
+        WrappedToken(infuraToMumbai[tokenContract]).mint(user, amount);
+        emit TokenClaimed(tokenContract, user, amount);
     }
 
     /**
@@ -61,7 +75,9 @@ contract Bridge is Ownable {
      * @param amount - amount of token to be burned
      */
     function burn(address tokenContract, uint256 amount) public {
-        // 
+        require(tokenContract != address(0));
+        WrappedToken(tokenContract).burn(msg.sender, amount);
+        emit TokenBurned(tokenContract, msg.sender, amount);
     }
 
     /**
@@ -69,8 +85,11 @@ contract Bridge is Ownable {
      * 
      * @param tokenContract - the address of the token generic contract
      */
-    function _addToken(address tokenContract) private onlyOwner{
+    function _addToken(address tokenContract) private {
         // deploy new wrapped contract
+        WrappedToken wrappedToken = new WrappedToken();
         // add it to the 'mumbaiToInfura' mapping
+        infuraToMumbai[tokenContract] = address(wrappedToken);
+        emit TokenAdded(address(wrappedToken));
     }
 }

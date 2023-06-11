@@ -75,8 +75,8 @@ contract Bridge is Ownable {
      * @param amount - amount of token to be burned
      */
     function burn(address tokenContract, uint256 amount) public {
-        require(mumbaiToInfura[tokenContract] != address(0), "There is no wrapped version of this token");
-        WrappedToken(mumbaiToInfura[tokenContract]).burn(msg.sender, amount);
+        require(tokenContract != address(0));
+        WrappedToken(tokenContract).burn(msg.sender, amount);
         emit TokenBurned(tokenContract, msg.sender, amount);
     }
 
