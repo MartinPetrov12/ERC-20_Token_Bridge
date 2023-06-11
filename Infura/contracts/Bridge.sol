@@ -39,11 +39,12 @@ contract Bridge is Ownable {
      * @param tokenContract - the address of the token's generic contract
      * @param amount - the amount of token to be released
      */
-    function release(address tokenContract, uint256 amount) public onlyOwner {
+    function release(address tokenContract, address user, uint256 amount) public onlyOwner {
         // transfer funds from bridge to the user
-        require(addressToLockedToken[msg.sender][tokenContract] >= amount);
+        require(addressToLockedToken[user][tokenContract] >= amount);
+        GenericToken(tokenContract).transfer(user, amount);
         // update addressToLockedToken
-        addressToLockedToken[msg.sender][tokenContract] -= amount;
+        addressToLockedToken[user][tokenContract] -= amount;
         // Emit event
         emit TokenReleased(tokenContract, msg.sender, amount);
     }
@@ -89,5 +90,6 @@ contract Bridge is Ownable {
         WrappedToken wrappedToken = new WrappedToken();
         // add it to the 'mumbaiToInfura' mapping
         mumbaiToInfura[tokenContract] = address(wrappedToken);
+        emit TokenAdded(address(wrappedToken));
     }
 }
