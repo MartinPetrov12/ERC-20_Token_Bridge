@@ -34,7 +34,7 @@ contract Bridge is Ownable {
      * @param tokenContract - the address of the token's generic contract
      * @param amount - the amount of token to be released
      */
-    function release(address tokenContract, uint256 amount) public {
+    function release(address tokenContract, uint256 amount) public onlyOwner {
         // transfer funds from bridge to the user
         // update addressToLockedToken
         // Emit event
@@ -61,7 +61,8 @@ contract Bridge is Ownable {
      * @param amount - amount of token to be burned
      */
     function burn(address tokenContract, uint256 amount) public {
-        // 
+        // burn the the token
+        // emit an event
     }
 
     /**
