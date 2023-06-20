@@ -2,7 +2,6 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./tokens/WrappedToken.sol";
-import "./tokens/GenericToken.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -138,8 +137,8 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param tokenContract - the address of the token generic contract
      */
     function _addToken(address tokenContract) private {
-        string memory wrappedName = string(abi.encodePacked("Wrapped", GenericToken(tokenContract).name()));
-        string memory wrappedSymbol = string(abi.encodePacked("W", GenericToken(tokenContract).symbol()));
+        string memory wrappedName = string(abi.encodePacked("Wrapped", ERC20(tokenContract).name()));
+        string memory wrappedSymbol = string(abi.encodePacked("W", ERC20(tokenContract).symbol()));
         // deploy new wrapped contract
         WrappedToken wrappedToken = new WrappedToken(wrappedName, wrappedSymbol);
         // add it to the 'mumbaiToInfura' mapping

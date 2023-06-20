@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract WrappedToken is ERC20, Ownable {
 
-    constructor(string memory name, string memory symbol) public ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
