@@ -1,20 +1,16 @@
 import { BigNumber, Contract } from "ethers";
 import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
-import { getProvider, getWallet }  from './utils'
+import { constructTransaction, getProvider, getWallet }  from './utils'
 
 export const lock = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, amount: number ) => {
     const provider = await getProvider(bridgeNetwork);
     const account = await getWallet(bridgeNetwork, provider);
     const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
 
-    const testTx = await bridgeContract.populateTransaction.lock(tokenAddress, amount);
-    testTx.nonce = await account.getTransactionCount();
-    if(bridgeNetwork == "mumbai") {
-        testTx.chainId = 80001
-    }
-    testTx.gasLimit = BigNumber.from(3000000);
-    testTx.gasPrice = BigNumber.from(5000000000);
-    const approveTxSigned = await account.signTransaction(testTx);
+    const transaction = await constructTransaction(await bridgeContract.populateTransaction.lock(tokenAddress, amount), account, bridgeNetwork);
+    transaction.value = BigNumber.from(200_000_000_000_000);
+    
+    const approveTxSigned = await account.signTransaction(transaction);
 
     const submittedTx = await provider.sendTransaction(approveTxSigned);
 
