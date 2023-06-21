@@ -1,15 +1,12 @@
 import { ethers, BigNumber, Contract, Wallet } from "ethers";
 import { providers } from "ethers";
 import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
-import GenericTokenArtifact from "../artifacts/contracts/tokens/GenericToken.sol/GenericToken.json";
-import dotenv from 'dotenv';
 import { getProvider, getWallet }  from './utils'
 
 export const lock = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, amount: number ) => {
     const provider = await getProvider(bridgeNetwork);
     const account = await getWallet(bridgeNetwork, provider);
     const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
-    const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
 
     const testTx = await bridgeContract.populateTransaction.lock(tokenAddress, amount);
     testTx.nonce = await account.getTransactionCount();

@@ -34,34 +34,43 @@ task("deploy-token", "Deploys a token instance")
   })
 
 task("lock", "Locks an amount of tokens in a bridge")
-  .addParam("bridgenetwork", "The network of the bridge")
-  .addParam("bridgeaddress", "The address of the bridge")
-  .addParam("tokenaddress", "The address of the token to lock")
+  .addParam("bridgeNetwork", "The network of the bridge")
+  .addParam("bridgeAddress", "The address of the bridge")
+  .addParam("tokenAddress", "The address of the token to lock")
   .addParam("amount", "The amount to be locked")
   .setAction(async (taskArgs) => {
     const { lock } = await importScript("./scripts/lock");
-    await lock(taskArgs.bridgenetwork, taskArgs.bridgeaddress, taskArgs.tokenaddress, taskArgs.amount)
+    await lock(taskArgs.bridgeNetwork, taskArgs.bridgeAddress, taskArgs.tokenAddress, taskArgs.amount)
 });
 
 task("mint-tokens", "Mints tokens to a wallet")
-  .addParam("bridgenetwork", "The network of the bridge")
+  .addParam("bridgeNetwork", "The network of the bridge")
   .addParam("receiver", "The address to mint the tokens to")
-  .addParam("tokenaddress", "The address of the token to lock")
+  .addParam("tokenAddress", "The address of the token to lock")
   .addParam("amount", "The amount to be locked")
   .setAction(async (taskArgs) => {
     const { tokenMint } = await importScript("./scripts/deploy-token")
-    await tokenMint(taskArgs.bridgenetwork, taskArgs.receiver, taskArgs.tokenaddress, taskArgs.amount);
+    await tokenMint(taskArgs.bridgeNetwork, taskArgs.receiver, taskArgs.tokenAddress, taskArgs.amount);
   })
 
 task("approve-tokens", "Approve tokens for a spender")
-  .addParam("bridgenetwork", "The network of the bridge")
+  .addParam("bridgeNetwork", "The network of the bridge")
   .addParam("spender", "The address to mint the tokens to")
-  .addParam("tokenaddress", "The address of the token to lock")
+  .addParam("tokenAddress", "The address of the token to lock")
   .addParam("amount", "The amount to be locked")
   .setAction(async (taskArgs) => {
     const {tokenApprove} = await importScript("./scripts/deploy-token");
-    await tokenApprove(taskArgs.bridgenetwork, taskArgs.spender, taskArgs.tokenaddress, taskArgs.amount);
+    await tokenApprove(taskArgs.bridgeNetwork, taskArgs.spender, taskArgs.tokenAddress, taskArgs.amount);
   })
+
+task("token-balance", "Checks users balance for a token")
+  .addParam("bridgeNetwork", "The network of the bridge")
+  .addParam("userAddress", "The address of the user")
+  .addParam("tokenAddress", "The address of the token to lock")
+  .setAction(async (taskArgs) => {
+    const {checkTokenBalance} = await importScript("./scripts/deploy-token");
+    await checkTokenBalance(taskArgs.bridgeNetwork, taskArgs.userAddress, taskArgs.tokenAddress);
+  });
 
 const importScript = async (module: any) => {
   return await import(module);
