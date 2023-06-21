@@ -1,21 +1,15 @@
 import { BigNumber, Contract } from "ethers";
 import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
-import { getProvider, getWallet }  from './utils'
-import { token } from "../typechain-types/@openzeppelin/contracts";
+import { getProvider, getWallet, constructTransaction }  from './utils'
 
-export const setTokenRelease = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, user: string, amount: number ) => {
+export const addTokensToRelease = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, user: string, amount: number) => {
     const provider = await getProvider(bridgeNetwork);
     const account = await getWallet(bridgeNetwork, provider);
     const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
 
-    const testTx = await bridgeContract.populateTransaction.setTokensToRelease(user, tokenAddress, amount);
-    testTx.nonce = await account.getTransactionCount();
-    if(bridgeNetwork == "mumbai") {
-        testTx.chainId = 80001
-    }
-    testTx.gasLimit = BigNumber.from(3000000);
-    testTx.gasPrice = BigNumber.from(5000000000);
-    const approveTxSigned = await account.signTransaction(testTx);
+    const transaction = await constructTransaction(await bridgeContract.populateTransaction.addTokensToRelease(user, tokenAddress, amount), account, bridgeNetwork);
+    
+    const approveTxSigned = await account.signTransaction(transaction);
 
     const submittedTx = await provider.sendTransaction(approveTxSigned);
 
@@ -28,4 +22,21 @@ export const setTokenRelease = async (bridgeNetwork: string, bridgeAddress: stri
     }   
 }
 
-export default setTokenRelease;
+export const addTokensToClaim = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, user: string, amount: number) => {
+    const provider = await getProvider(bridgeNetwork);
+    const account = await getWallet(bridgeNetwork, provider);
+    const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
+
+    const detailedTransaction = await constructTransaction(await bridgeContract.populateTransaction.addTokensToClaim(user, tokenAddress, amount), account, bridgeNetwork);
+    const approveTxSigned = await account.signTransaction(detailedTransaction);
+    const submittedTx = await provider.sendTransaction(approveTxSigned);
+    const approveReceipt = await submittedTx.wait();
+    if (approveReceipt.status != 1) {
+        throw Error("Error while setting tokens to claim.");
+    } else {
+        const availableTokensToClaim = await bridgeContract.getTokensToClaim(user, tokenAddress);
+        console.log("User with address " + user + " can now claim " + availableTokensToClaim + " tokens for token with address " + tokenAddress);
+    }   
+}
+
+export default { addTokensToRelease, addTokensToClaim };

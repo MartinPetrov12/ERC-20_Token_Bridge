@@ -1,7 +1,8 @@
-import { Contract, Wallet, providers, BigNumber } from "ethers";
+import { Contract } from "ethers";
 import GenericTokenArtifact from "../artifacts/contracts/tokens/GenericToken.sol/GenericToken.json";
+import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
 import { ethers } from "hardhat"
-import { getProvider, getWallet } from "./utils"
+import { constructTransaction, getProvider, getWallet } from "./utils"
 import 'dotenv';
 
 export const tokenDeploy = async (tokenName: string, tokenSymbol: string) => {
@@ -17,25 +18,15 @@ export const tokenDeploy = async (tokenName: string, tokenSymbol: string) => {
 }
 
 export const tokenMint = async (bridgeNetwork: string, receiverAddress: string, tokenAddress: string, amount: number) => {
-    console.log(bridgeNetwork);
-    console.log(receiverAddress);
-    console.log(tokenAddress);
-    console.log(amount);
     const provider = await getProvider(bridgeNetwork);
      
     const account = await getWallet(bridgeNetwork, provider);
      
     const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
      
-    const testTx = await tokenContract.populateTransaction.mint(receiverAddress, amount);
+    const transaction = await constructTransaction(await tokenContract.populateTransaction.mint(receiverAddress, amount), account, bridgeNetwork);
     
-    testTx.nonce = await account.getTransactionCount();
-    if(bridgeNetwork == "mumbai") {
-        testTx.chainId = 80001
-    }
-    testTx.gasLimit = BigNumber.from(3000000);
-    testTx.gasPrice = BigNumber.from(5000000000);
-    const approveTxSigned = await account.signTransaction(testTx);
+    const approveTxSigned = await account.signTransaction(transaction);
     
     const submittedTx = await provider.sendTransaction(approveTxSigned);
     
@@ -55,16 +46,10 @@ export const tokenApprove = async (bridgeNetwork: string, spender: string, token
      
     const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
      
-    const testTx = await tokenContract.populateTransaction.approve(spender, amount);
+    const transaction = await constructTransaction(await tokenContract.populateTransaction.approve(spender, amount), account, bridgeNetwork);
     
-    testTx.nonce = await account.getTransactionCount();
-    if(bridgeNetwork == "mumbai") {
-        testTx.chainId = 80001
-    }
-    testTx.gasLimit = BigNumber.from(3000000);
-    testTx.gasPrice = BigNumber.from(5000000000);
-    const approveTxSigned = await account.signTransaction(testTx);
-    
+    const approveTxSigned = await account.signTransaction(transaction);
+
     const submittedTx = await provider.sendTransaction(approveTxSigned);
     
     const approveReceipt = await submittedTx.wait();
@@ -77,28 +62,34 @@ export const tokenApprove = async (bridgeNetwork: string, spender: string, token
 
 export const checkTokenBalance = async (bridgeNetwork: string, userAddress: string, tokenAddress: string ) => {
     const provider = await getProvider(bridgeNetwork);
-    // const account = await getWallet(bridgeNetwork, provider);
      
     const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
      
     const balance = await tokenContract.balanceOf(userAddress);
-    console.log("Balance is " + balance);
-    // if(bridgeNetwork == "mumbai") {
-    //     testTx.chainId = 80001
-    // }
+    console.log("User with address " + userAddress + " has "+ balance + " tokens from token with address " + tokenAddress);
+ 
+}
 
-    // const approveTxSigned = await account.signTransaction(testTx);
-    
-    // const submittedTx = await provider.sendTransaction(approveTxSigned);
-    
-    // const approveReceipt = await submittedTx.wait();
-    // if (approveReceipt.status != 1) {
-    //     throw Error("Tokens were not approved");
-    // } else {
-    //     console.log();
-    // } 
+export const getClaim = async (bridgeNetwork: string, bridgeAddress: string, userAddress: string, tokenAddress: string ) => {
+    const provider = await getProvider(bridgeNetwork);
+     
+    const tokenContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
+     
+    const toClaim = await tokenContract.getTokensToClaim(userAddress, tokenAddress);
+    console.log("User with address " + userAddress + " has "+ toClaim + " tokens from token with address " + tokenAddress + " to claim");
+ 
+}
+
+export const getTokenAllowance = async (bridgeNetwork: string, owner: string, spender: string, tokenAddress: string ) => {
+    const provider = await getProvider(bridgeNetwork);
+     
+    const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
+     
+    const allowance = await tokenContract.allowance(owner, spender);
+    console.log("Owner: " + owner +", Spender: " + spender);
+    console.log("Token address : " + tokenAddress +", Allowance: " + allowance);
 }
 
 
 
-export default {tokenDeploy, tokenMint, tokenApprove, checkTokenBalance};
+export default {tokenDeploy, tokenMint, tokenApprove, checkTokenBalance, getTokenAllowance, getClaim};

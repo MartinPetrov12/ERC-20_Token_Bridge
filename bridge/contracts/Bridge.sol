@@ -43,11 +43,11 @@ contract Bridge is Ownable, ReentrancyGuard {
         return tokensToClaim[user][tokenContract];
     }
 
-    function setTokensToRelease(address user, address tokenContract, uint256 amount) external onlyOwner {
+    function addTokensToRelease(address user, address tokenContract, uint256 amount) external onlyOwner {
         tokensToRelease[user][tokenContract] += amount;
     }
 
-    function setTokensToClaim(address user, address tokenContract, uint256 amount) external onlyOwner {
+    function addTokensToClaim(address user, address tokenContract, uint256 amount) external onlyOwner {
         tokensToClaim[user][tokenContract] += amount;
     }
 
@@ -137,8 +137,10 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param tokenContract - the address of the token generic contract
      */
     function _addToken(address tokenContract) private {
-        string memory wrappedName = string(abi.encodePacked("Wrapped", ERC20(tokenContract).name()));
-        string memory wrappedSymbol = string(abi.encodePacked("W", ERC20(tokenContract).symbol()));
+        string memory wrappedName = "WrappedToken";
+        string memory wrappedSymbol = "WrappedSymbol";
+        // string memory wrappedName = string(abi.encodePacked("Wrapped", ERC20(tokenContract).name()));
+        // string memory wrappedSymbol = string(abi.encodePacked("W", ERC20(tokenContract).symbol()));
         // deploy new wrapped contract
         WrappedToken wrappedToken = new WrappedToken(wrappedName, wrappedSymbol);
         // add it to the 'mumbaiToInfura' mapping

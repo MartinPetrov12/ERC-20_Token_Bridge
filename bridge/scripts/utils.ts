@@ -1,4 +1,4 @@
-import { Wallet, providers } from "ethers";
+import { BigNumber, PopulatedTransaction, Wallet, providers } from "ethers";
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.dev' });
@@ -6,7 +6,7 @@ dotenv.config({ path: '.env.dev' });
 export const getProvider = async (bridgeNetwork: string) => {
 
     if(bridgeNetwork.toLowerCase() == "sepolia") {
-        return new providers.InfuraProvider("sepolia", process.env.INFURA_SEPOLIA_URL);
+        return new providers.InfuraProvider("sepolia", process.env.INFURA_SEPOLIA_API);
     } else if(bridgeNetwork.toLowerCase() == "mumbai") {
         const provider = new providers.AlchemyProvider('maticmum', process.env.ALCHEMY_MUMBAI_API);
         return provider;
@@ -23,4 +23,16 @@ export const getWallet = async (bridgeNetwork: string, provider: providers.UrlJs
     } else {
        throw Error("Network " + bridgeNetwork + " is not supported.");
     }
+}
+
+export async function constructTransaction(transaction: PopulatedTransaction, account: Wallet, bridgeNetwork: string): Promise<PopulatedTransaction> {
+    transaction.nonce = await account.getTransactionCount();
+    transaction.gasLimit = BigNumber.from(Number(process.env.GAS_LIMIT));
+    transaction.gasPrice = BigNumber.from(Number(process.env.GAS_PRICE));
+    if(bridgeNetwork == "mumbai") {
+        transaction.chainId = Number(process.env.MUMBAI_CHAIN_ID);
+    } else if(bridgeNetwork == "sepolia") {
+        transaction.chainId = Number(process.env.SEPOLIA_CHAIN_ID);
+    }
+    return transaction;
 }
