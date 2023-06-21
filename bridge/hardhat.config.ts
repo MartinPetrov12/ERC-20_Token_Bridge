@@ -70,7 +70,28 @@ task("token-balance", "Checks users balance for a token")
   .setAction(async (taskArgs) => {
     const {checkTokenBalance} = await importScript("./scripts/deploy-token");
     await checkTokenBalance(taskArgs.bridgeNetwork, taskArgs.userAddress, taskArgs.tokenAddress);
-  });
+});
+
+task("set-token-release", "Adds an amount of tokens to be released for a user")
+.addParam("bridgeNetwork", "The network of the bridge")
+.addParam("bridgeAddress", "The address of the bridge")
+.addParam("userAddress", "The address of the user")
+.addParam("tokenAddress", "The address of the token to lock")
+.addParam("amount", "Amount of tokens to be added")
+.setAction(async (taskArgs) => {
+  const {setTokenRelease} = await importScript("./scripts/mappingsSetter");
+  await setTokenRelease(taskArgs.bridgeNetwork, taskArgs.bridgeAddress, taskArgs.tokenAddress, taskArgs.userAddress, taskArgs.amount);
+});
+
+task("release", "Release an amount of tokens")
+  .addParam("bridgeNetwork", "The network of the bridge")
+  .addParam("bridgeAddress", "The address of the bridge")
+  .addParam("tokenAddress", "The address of the token to lock")
+  .addParam("amount", "Amount of tokens to be added")
+  .setAction(async (taskArgs) => {
+    const {release} = await importScript("./scripts/release");
+    await release(taskArgs.bridgeNetwork, taskArgs.bridgeAddress, taskArgs.tokenAddress, taskArgs.amount);
+});
 
 const importScript = async (module: any) => {
   return await import(module);

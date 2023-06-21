@@ -1,13 +1,14 @@
 import { BigNumber, Contract } from "ethers";
 import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
 import { getProvider, getWallet }  from './utils'
+import { token } from "../typechain-types/@openzeppelin/contracts";
 
-export const release = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, amount: number ) => {
+export const setTokenRelease = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, user: string, amount: number ) => {
     const provider = await getProvider(bridgeNetwork);
     const account = await getWallet(bridgeNetwork, provider);
     const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
 
-    const testTx = await bridgeContract.populateTransaction.release(tokenAddress, amount);
+    const testTx = await bridgeContract.populateTransaction.setTokensToRelease(user, tokenAddress, amount);
     testTx.nonce = await account.getTransactionCount();
     if(bridgeNetwork == "mumbai") {
         testTx.chainId = 80001
@@ -20,10 +21,11 @@ export const release = async (bridgeNetwork: string, bridgeAddress: string, toke
 
     const approveReceipt = await submittedTx.wait();
     if (approveReceipt.status != 1) {
-        throw Error("Funds were not released");
+        throw Error("Error while setting tokens to release.");
     } else {
-        console.log(amount + " of tokens from token with address " + bridgeAddress + " were released.");
+        const availableTokensToRelease = await bridgeContract.getTokensToRelease(user, tokenAddress);
+        console.log("User with address " + user + " can now release " + availableTokensToRelease + " tokens for token with address " + tokenAddress);
     }   
 }
 
-export default release;
+export default setTokenRelease;
