@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Bridge is Ownable, ReentrancyGuard {
 
-    // a mapping between the address of the contract deployed on Mumbai to the wrapped version on Infura
+    // a mapping between the address of the contract deployed on the source chain to the wrapped version on the target chain
     mapping(address => address) targetContract; 
 
     // a mapping between a user and the amount of tokens they have locked of a specific token
@@ -17,7 +17,7 @@ contract Bridge is Ownable, ReentrancyGuard {
     // a mapping between a user and the amount of tokens they can claim of a specific token
     mapping(address => mapping(address => uint256)) tokensToClaim;
 
-
+    // a mapping between a user and the amount of tokens they can release of a specific token
     mapping(address => mapping(address => uint256)) tokensToRelease;
 
     event TokenLocked(address tokenContract, address userAddress, uint256 amount);
