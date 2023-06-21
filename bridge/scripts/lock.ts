@@ -1,5 +1,4 @@
-import { ethers, BigNumber, Contract, Wallet } from "ethers";
-import { providers } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
 import { getProvider, getWallet }  from './utils'
 
