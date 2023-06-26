@@ -2,23 +2,28 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./tokens/WrappedToken.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+struct UserInformation { 
+   // a mapping between a user and the amount of tokens they have locked of a specific token
+   mapping(address => mapping(address => uint256)) lockedTokensForUser;
+   // a mapping between a user and the amount of tokens they can claim of a specific token
+   mapping(address => mapping(address => uint256)) tokensToClaim;
+   // a mapping between a user and the amount of tokens they can release of a specific token
+   mapping(address => mapping(address => uint256)) tokensToRelease;
+}
+
 contract Bridge is Ownable, ReentrancyGuard {
+
+    using SafeERC20 for IERC20;
 
     // a mapping between the address of the contract deployed on the source chain to the wrapped version on the target chain
     mapping(address => address) targetContract; 
-
-    // a mapping between a user and the amount of tokens they have locked of a specific token
-    mapping(address => mapping(address => uint256)) lockedTokensForUser;
-
-    // a mapping between a user and the amount of tokens they can claim of a specific token
-    mapping(address => mapping(address => uint256)) tokensToClaim;
-
-    // a mapping between a user and the amount of tokens they can release of a specific token
-    mapping(address => mapping(address => uint256)) tokensToRelease;
+    
+    UserInformation userInformation;
 
     event TokenLocked(address tokenContract, address userAddress, uint256 amount);
     event TokenClaimed(address tokenContract, address userAddress, uint256 amount);
@@ -34,21 +39,21 @@ contract Bridge is Ownable, ReentrancyGuard {
     function getWrappedToken(address tokenContract) public view returns (address) {
         return targetContract[tokenContract];
     }
-
+    
     function getTokensToRelease(address user, address tokenContract) external view returns(uint256) {
-        return tokensToRelease[user][tokenContract];
+        return userInformation.tokensToRelease[user][tokenContract];
     }
 
     function getTokensToClaim(address user, address tokenContract) external view returns(uint256) {
-        return tokensToClaim[user][tokenContract];
+        return userInformation.tokensToClaim[user][tokenContract];
     }
 
-    function setTokensToRelease(address user, address tokenContract, uint256 amount) external onlyOwner {
-        tokensToRelease[user][tokenContract] += amount;
+    function addTokensToRelease(address user, address tokenContract, uint256 amount) external onlyOwner {
+        userInformation.tokensToRelease[user][tokenContract] += amount;
     }
 
-    function setTokensToClaim(address user, address tokenContract, uint256 amount) external onlyOwner {
-        tokensToClaim[user][tokenContract] += amount;
+    function addTokensToClaim(address user, address tokenContract, uint256 amount) external onlyOwner {
+        userInformation.tokensToClaim[user][tokenContract] += amount;
     }
 
     /**
@@ -57,17 +62,13 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param tokenContract - the address of the token's generic contract
      * @param amount - the amount of token to be locked
      */
-    function lock(address tokenContract, uint256 amount) public nonReentrant {
+    function lock(address tokenContract, uint256 amount) public nonReentrant payable {
         // Try transfering the funds
         IERC20 token = IERC20(tokenContract);
-        try token.transferFrom(msg.sender, address(this), amount) returns (bool) {
-            // Update lockedTokensForUser
-            lockedTokensForUser[msg.sender][tokenContract] += amount;
-            // Emit event
-            emit TokenLocked(tokenContract, msg.sender, amount);
-        } catch {
-            revert UnsuccessfulTransfer(tokenContract, msg.sender, address(this), amount); 
-        }    
+        require(msg.value == 200_000_000_000_000 wei, "Sent value is not equal to 200000 gwei.");
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        userInformation.lockedTokensForUser[msg.sender][tokenContract] += amount;
+        emit TokenLocked(tokenContract, msg.sender, amount);
     }
 
     /**
@@ -78,22 +79,17 @@ contract Bridge is Ownable, ReentrancyGuard {
      */
     function release(address tokenContract, uint256 amount) public {
         // transfer funds from bridge to the user
-        if(tokensToRelease[msg.sender][tokenContract] < amount) {
+        if(userInformation.tokensToRelease[msg.sender][tokenContract] < amount) {
             revert UnsufficientFunds(tokenContract, msg.sender, amount);
         }
 
         // update tokensToRelease
-        tokensToRelease[msg.sender][tokenContract] -= amount;
+        userInformation.tokensToRelease[msg.sender][tokenContract] -= amount;
 
         IERC20 token = IERC20(tokenContract);
 
-        try token.transfer(msg.sender, amount) {
-            emit TokenReleased(tokenContract, msg.sender, amount);
-            
-        } catch {
-            revert UnsuccessfulRelease(tokenContract, msg.sender, amount);
-        }
-        
+        token.safeTransfer(msg.sender, amount);
+        emit TokenReleased(tokenContract, msg.sender, amount);
     }
 
     /**
@@ -104,11 +100,11 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param amount - amount of token to be claimed 
      */ 
     function claim(address tokenContract, uint256 amount) public {
-        if(tokensToClaim[msg.sender][tokenContract] < amount) {
+        if(userInformation.tokensToClaim[msg.sender][tokenContract] < amount) {
             revert UnsufficientFunds(tokenContract, msg.sender, amount);
         }
         
-        tokensToClaim[msg.sender][tokenContract] -= amount;
+        userInformation.tokensToClaim[msg.sender][tokenContract] -= amount;
         // check if a wrapped contract exists
         if(targetContract[tokenContract] == address(0)) {
             // If it does not, create a wrapped contract via '_addToken'
@@ -126,7 +122,7 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param tokenContract - the address of the token generic contract
      * @param amount - amount of token to be burned
      */
-    function burn(address tokenContract, uint256 amount) public nonReentrant{
+    function burn(address tokenContract, uint256 amount) public nonReentrant {
         WrappedToken(tokenContract).burn(msg.sender, amount);
         emit TokenBurned(tokenContract, msg.sender, amount);
     }

@@ -32,7 +32,7 @@ describe("Bridge", () => {
             const amountOfTokens = 10;
             // check value before and after
             const tokensToReleaseBeforeExecution = await bridge.getTokensToRelease(otherAccount.address, genericToken.address);
-            await bridge.connect(bridgeOwner).setTokensToRelease(otherAccount.address, genericToken.address, amountOfTokens);
+            await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, amountOfTokens);
             const tokensToReleaseAfterExecution = await bridge.getTokensToRelease(otherAccount.address, genericToken.address);
             expect(tokensToReleaseBeforeExecution.add(amountOfTokens)).to.equal(tokensToReleaseAfterExecution);
         });
@@ -42,7 +42,7 @@ describe("Bridge", () => {
             const amountOfTokens = 10;
             
             const tokensToClaimBeforeExecution = await bridge.getTokensToClaim(otherAccount.address, genericToken.address);
-            await bridge.connect(bridgeOwner).setTokensToClaim(otherAccount.address, genericToken.address, amountOfTokens);
+            await bridge.connect(bridgeOwner).addTokensToClaim(otherAccount.address, genericToken.address, amountOfTokens);
             const tokensToClaimAfterExecution = await bridge.getTokensToClaim(otherAccount.address, genericToken.address);
             expect(tokensToClaimBeforeExecution.add(amountOfTokens)).to.equal(tokensToClaimAfterExecution);
         });
@@ -51,7 +51,7 @@ describe("Bridge", () => {
             const { bridge, genericToken, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const amountOfTokens = 10;
 
-            await expect(bridge.connect(otherAccount).setTokensToRelease(otherAccount.address, genericToken.address, amountOfTokens))
+            await expect(bridge.connect(otherAccount).addTokensToRelease(otherAccount.address, genericToken.address, amountOfTokens))
                 .to.be.revertedWith("Ownable: caller is not the owner");
         })
 
@@ -59,7 +59,7 @@ describe("Bridge", () => {
             const { bridge, genericToken, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const amountOfTokens = 10;
 
-            await expect(bridge.connect(otherAccount).setTokensToClaim(otherAccount.address, genericToken.address, amountOfTokens))
+            await expect(bridge.connect(otherAccount).addTokensToClaim(otherAccount.address, genericToken.address, amountOfTokens))
                 .to.be.revertedWith("Ownable: caller is not the owner");
         })
     })
@@ -71,7 +71,9 @@ describe("Bridge", () => {
             await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToLock);
             await genericToken.connect(otherAccount).approve(bridge.address, tokensToLock);
 
-            await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock))
+            await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 200_000_000_000_000,
+            }))
                 .to.emit(bridge, "TokenLocked")
                 .withArgs(genericToken.address, otherAccount.address, tokensToLock);
         });
@@ -83,19 +85,30 @@ describe("Bridge", () => {
             await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToApprove);
             await genericToken.connect(otherAccount).approve(bridge.address, tokensToApprove);
 
-            // await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock))
-            //     .to.be.revertedWith("ERC20: insufficient allowance");
+            await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 200_000_000_000_000,
+            }))
+                .to.be.revertedWith("ERC20: insufficient allowance");
+        })
 
-            await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock))
-                .to.be.revertedWithCustomError(bridge, "UnsuccessfulTransfer")
-                .withArgs(genericToken.address, otherAccount.address, bridge.address, tokensToLock);
+        it("Should revert on trying to lock tokens without providing the correct value", async function () {
+            const tokensToApprove = 5;
+            const tokensToLock = 10;
+            const { bridge, genericToken, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
+            await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToApprove);
+            await genericToken.connect(otherAccount).approve(bridge.address, tokensToApprove);
+
+            await expect(bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 150_000_000_000_000,
+            }))
+                .to.be.revertedWith("Sent value is not equal to 200000 gwei.");
         })
 
         it("Should release tokens", async function () {
             const { bridge, genericToken, bridgeOwner, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const tokensToRelease = 10;
             await genericToken.connect(tokenOwner).mint(bridge.address, tokensToRelease);
-            await bridge.connect(bridgeOwner).setTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
+            await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
 
             await expect(bridge.connect(otherAccount).release(genericToken.address, tokensToRelease))
                 .to.emit(bridge, "TokenReleased")
@@ -107,9 +120,9 @@ describe("Bridge", () => {
             const tokensToRelease = 5;
             const unsufficientAmount = 10;
             await genericToken.connect(tokenOwner).mint(bridge.address, tokensToRelease);
-            await bridge.connect(bridgeOwner).setTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
+            await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
 
-            await expect(bridge.connect(otherAccount).release(genericToken.address, 10))
+            await expect(bridge.connect(otherAccount).release(genericToken.address, unsufficientAmount))
                 .to.be.revertedWithCustomError(bridge, "UnsufficientFunds")
                 .withArgs(genericToken.address, otherAccount.address, unsufficientAmount);
         })
@@ -118,11 +131,10 @@ describe("Bridge", () => {
             const { bridge, genericToken, bridgeOwner, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const tokensToRelease = 5;
             
-            await bridge.connect(bridgeOwner).setTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
+            await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
 
             await expect(bridge.connect(otherAccount).release(genericToken.address, tokensToRelease))
-                .to.be.revertedWithCustomError(bridge, "UnsuccessfulRelease")
-                .withArgs(genericToken.address, otherAccount.address, tokensToRelease);
+                .to.be.revertedWith("ERC20: transfer amount exceeds balance");
         })
 
         it("Should be able to create new wrapped token and claim funds", async function () {
@@ -130,7 +142,7 @@ describe("Bridge", () => {
             const tokensToClaim = 10;
             const firstClaim = 5;
             const secondClaim = 5;
-            await bridge.connect(bridgeOwner).setTokensToClaim(otherAccount.address, genericToken.address, tokensToClaim);
+            await bridge.connect(bridgeOwner).addTokensToClaim(otherAccount.address, genericToken.address, tokensToClaim);
 
             await expect(bridge.connect(otherAccount).claim(genericToken.address, firstClaim))
                 .to.emit(bridge, "WrappedTokenAdded")
@@ -156,7 +168,7 @@ describe("Bridge", () => {
             const { bridge, genericToken, bridgeOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const tokensToClaim = 10;
             const tokensToBurn = 10;
-            await bridge.connect(bridgeOwner).setTokensToClaim(otherAccount.address, genericToken.address, tokensToClaim);
+            await bridge.connect(bridgeOwner).addTokensToClaim(otherAccount.address, genericToken.address, tokensToClaim);
 
             await bridge.connect(otherAccount).claim(genericToken.address, tokensToClaim);
 
