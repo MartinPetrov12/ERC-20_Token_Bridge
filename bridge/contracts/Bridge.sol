@@ -20,6 +20,9 @@ contract Bridge is Ownable, ReentrancyGuard {
 
     using SafeERC20 for IERC20;
 
+    string constant valueError = "Sent value is not equal to 200000 gwei.";
+    uint256 constant requiredLockValue = 200_000_000_000_000 wei;
+
     // a mapping between the address of the contract deployed on the source chain to the wrapped version on the target chain
     mapping(address => address) targetContract; 
     
@@ -39,7 +42,7 @@ contract Bridge is Ownable, ReentrancyGuard {
     function getWrappedToken(address tokenContract) public view returns (address) {
         return targetContract[tokenContract];
     }
-    
+
     function getTokensToRelease(address user, address tokenContract) external view returns(uint256) {
         return userInformation.tokensToRelease[user][tokenContract];
     }
@@ -65,7 +68,7 @@ contract Bridge is Ownable, ReentrancyGuard {
     function lock(address tokenContract, uint256 amount) public nonReentrant payable {
         // Try transfering the funds
         IERC20 token = IERC20(tokenContract);
-        require(msg.value == 200_000_000_000_000 wei, "Sent value is not equal to 200000 gwei.");
+        require(msg.value == requiredLockValue, valueError);
         token.safeTransferFrom(msg.sender, address(this), amount);
         userInformation.lockedTokensForUser[msg.sender][tokenContract] += amount;
         emit TokenLocked(tokenContract, msg.sender, amount);
