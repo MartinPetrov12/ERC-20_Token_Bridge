@@ -136,8 +136,10 @@ contract Bridge is Ownable, ReentrancyGuard {
      * @param tokenContract - the address of the token generic contract
      */
     function _addToken(address tokenContract) private {
-        string memory wrappedName = string(abi.encodePacked("Wrapped", ERC20(tokenContract).name()));
-        string memory wrappedSymbol = string(abi.encodePacked("W", ERC20(tokenContract).symbol()));
+        string memory wrappedName = "WrappedToken";
+        string memory wrappedSymbol = "WrappedSymbol";
+        // string memory wrappedName = string(abi.encodePacked("Wrapped", ERC20(tokenContract).name()));
+        // string memory wrappedSymbol = string(abi.encodePacked("W", ERC20(tokenContract).symbol()));
         // deploy new wrapped contract
         WrappedToken wrappedToken = new WrappedToken(wrappedName, wrappedSymbol);
         // add it to the 'mumbaiToInfura' mapping

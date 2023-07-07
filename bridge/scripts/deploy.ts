@@ -1,8 +1,9 @@
 import { ethers } from "hardhat"
+import { populateDeploymentContract } from "./utils";
 
-export const bridgeDeploy = async () => {
+export const bridgeDeploy = async (network: string) => {
     const bridgeFactory = await ethers.getContractFactory("Bridge")
-    const bridgeContract = await bridgeFactory.deploy();
+    const bridgeContract = await bridgeFactory.deploy(populateDeploymentContract(network));
 
     await bridgeContract.deployed();
 
@@ -12,3 +13,5 @@ export const bridgeDeploy = async () => {
 }
 
 export default bridgeDeploy;
+
+
