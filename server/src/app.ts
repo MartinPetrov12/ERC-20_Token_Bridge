@@ -1,7 +1,6 @@
 import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import cors from 'cors'; 
 import mongoose from 'mongoose';
@@ -10,6 +9,9 @@ import { Contract, Event, ethers } from 'ethers';
 import { addTokensToClaim, addTokensToRelease } from '../../bridge/scripts/mappingsSetter'
 import BridgeArtifact from '../../bridge/artifacts/contracts/Bridge.sol/Bridge.json';
 import fs from 'fs';
+import { saveEvent } from '../database/events';
+import { addLockedAmount, decreaseClaimAmount, decreaseReleaseAmount, increaseReleaseAmount } from '../database/bridgedToken'
+import eventsRoute from './routes/eventsRoute';  
 
 const app = express();
 
@@ -18,8 +20,8 @@ app.use(cors({
 }));
 
 app.use(compression());
-app.use(cookieParser());
 app.use(bodyParser.json());
+app.use('/api', eventsRoute);
 
 const server = http.createServer(app);
 
@@ -27,12 +29,12 @@ server.listen(8080, () => {
   console.log("Server running on http://localhost:8080/")
 })
 
-const MONGO_URL = 'mongodb+srv://martinantonov345:XHZnqVTyZFbzYEse@clusterbatko.vutrp6j.mongodb.net/?retryWrites=true&w=majority'
+const MONGO_URL = 'mongodb+srv://bridgeAdmin:bridgeAdminLime@erc20-bridge.vgpitrd.mongodb.net/?retryWrites=true&w=majority'
 
-// mongoose.Promise = Promise;
-// mongoose.connect(MONGO_URL);
+mongoose.Promise = Promise;
+mongoose.connect(MONGO_URL);
 
-// mongoose.connection.on('error', (error: Error) => console.log(error));
+mongoose.connection.on('error', (error: Error) => console.log(error));
 
 const mumbaiAlchemyAPI = 'd0ugQFxtA7g6jQNT6x988E4_FsfSC23c';
 const sepoliaInfuraAPI = '34e4a0562c904be6bb4b9d3a72694d7c';
@@ -44,8 +46,8 @@ const sepoliaBridgeAddress = '0xB372F4943dEFF344f263E1127C78360f6AD59dfd';
 const mumbaiBridgeAddress = '0xf09C04D6849C2b9c171ea810DE320F3Ffcc1945a';
 
 
-const lastProcessedMumbaiBlockFilePath = "../LastProcessedMumbaiBlock.txt";
-const lastProcessedSepoliaBlockFilePath = "../LastProcessedSepoliaBlock.txt";
+const lastProcessedMumbaiBlockFilePath = "./LastProcessedMumbaiBlock.txt";
+const lastProcessedSepoliaBlockFilePath = "./LastProcessedSepoliaBlock.txt";
 
 async function scanBlocks() {
   let isMumbaiFetchingLocked = false;
@@ -109,39 +111,52 @@ async function processLockEvent(event: Event, network: string, bridgeAddress: st
   const tokenAddress = event.args[0];
   const userAddress = event.args[1]
   const amount = event.args[2];
-  if(network == "sepolia") {
-    await addTokensToClaim("maticmum", mumbaiBridgeAddress, tokenAddress, userAddress, amount);
-  } else if(network == "maticmum") {
-    await addTokensToClaim("sepolia", sepoliaBridgeAddress, tokenAddress, userAddress, amount);
-  }
-  // TO-DO: save event in db
+  // if(network == "sepolia") {
+  //   await addTokensToClaim("maticmum", mumbaiBridgeAddress, tokenAddress, userAddress, amount);
+  // } else if(network == "maticmum") {
+  //   await addTokensToClaim("sepolia", sepoliaBridgeAddress, tokenAddress, userAddress, amount);
+  // }
+  await saveEvent(network, "TokenLocked", userAddress, tokenAddress, amount);
+  await addLockedAmount(userAddress, tokenAddress, amount, network);
 }
 
-function processClaimEvent(event: Event, network: string, bridgeAddress: string) {
-    console.log("User: " + event.args[1] + " claimed " + event.args[2] + " tokens, address of token: " + event.args[0])
-    // save event in database
+async function processClaimEvent(event: Event, network: string, bridgeAddress: string) {
+  const tokenAddress = event.args[0];
+  const userAddress = event.args[1]
+  const amount = event.args[2];
+  console.log("User: " + userAddress + " claimed " + amount + " tokens, address of token: " + tokenAddress)
+  // save event in database
+  await saveEvent(network, "TokenClaimed", userAddress, tokenAddress, amount);
+  await decreaseClaimAmount(userAddress, tokenAddress, amount, network)
 }
 
-function processReleaseEvent(event: Event, network: string, bridgeAddress: string) {
-  throw new Error('Function not implemented.');
+async function processReleaseEvent(event: Event, network: string, bridgeAddress: string) {
+  const tokenAddress = event.args[0];
+  const userAddress = event.args[1]
+  const amount = event.args[2];
   // save event in database
   console.log("Released tokens");
+  await saveEvent(network, "TokenReleased", userAddress, tokenAddress, amount);
+  await decreaseReleaseAmount(userAddress, tokenAddress, amount, network);
+  // update lock and release values
 }
 
 async function processBurnEvent(event: Event, network: string, bridgeAddress: string) {
   console.log("Burned tokens");
 
-  const tokenAddress = event.args[0];
+  const wrappedTokenAddress = event.args[0];
   const userAddress = event.args[1]
   const amount = event.args[2];
   
-  if(network == "sepolia") {
-    await addTokensToRelease("maticmum", mumbaiBridgeAddress, tokenAddress, userAddress, amount);
-  } else if(network == "maticmum") {
-    await addTokensToRelease("sepolia", sepoliaBridgeAddress, tokenAddress, userAddress, amount);
-  }
+  // if(network == "sepolia") {
+  //   await addTokensToRelease("maticmum", mumbaiBridgeAddress, tokenAddress, userAddress, amount);
+  // } else if(network == "maticmum") {
+  //   await addTokensToRelease("sepolia", sepoliaBridgeAddress, tokenAddress, userAddress, amount);
+  // }
 
   //TO-DO: Save event in db
+  await saveEvent(network, "TokenBurned", userAddress, wrappedTokenAddress, amount);
+  await increaseReleaseAmount(userAddress, wrappedTokenAddress, amount, network)
 }
 
 function processWrappedTokenEvent(event: Event, network: string) {
@@ -156,8 +171,7 @@ function getLastProcessedBlock(filePath: string): number {
 }
 
 async function updateLastProcessedBlock(filePath: string, lastProcessedBlock: number) {
-  fs.writeFile(filePath, lastProcessedBlock.toString(), (err) => {
-    
+  fs.writeFile(filePath, lastProcessedBlock.toString(), (err) => {  
   });
   // console.log("Finished updating");
 }

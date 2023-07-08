@@ -116,7 +116,7 @@ contract Bridge is Ownable, ReentrancyGuard {
         // Then mint the amount to the user and emit an event
         WrappedToken(targetContract[tokenContract]).mint(msg.sender, amount);
         
-        emit TokenClaimed(tokenContract, msg.sender, amount);
+        emit TokenClaimed(targetContract[tokenContract], msg.sender, amount);
     }
 
     /**
