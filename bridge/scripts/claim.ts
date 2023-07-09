@@ -1,22 +1,18 @@
-import { BigNumber, Contract } from "ethers";
-import BridgeArtifact from "../artifacts/contracts/Bridge.sol/Bridge.json";
-import { constructTransaction, getProvider, getWallet }  from './utils'
+import { BridgeTransactionMetadata, getBridgeTransactionMetadata } from "./interfaces/BridgeTransactionMetadata";
+import { constructTransaction, processTransaction } from "./interfaces/TransactionMetadata";
 
-export const claim = async (bridgeNetwork: string, bridgeAddress: string, tokenAddress: string, amount: number ) => {
-    const provider = await getProvider(bridgeNetwork);
-    const account = await getWallet(bridgeNetwork, provider);
-    const bridgeContract = new Contract(bridgeAddress, BridgeArtifact.abi, provider);
-    const transaction = await constructTransaction(await bridgeContract.populateTransaction.claim(tokenAddress, amount), account, bridgeNetwork);
+export const claim = async (tokenAddress: string, amount: number, network: string) => {
+    const bridgeTransactionMetadata: BridgeTransactionMetadata = await getBridgeTransactionMetadata(network);
+    const transaction = await constructTransaction(
+        await bridgeTransactionMetadata.bridgeContract.populateTransaction.claim(tokenAddress, amount),
+        bridgeTransactionMetadata
+    );
+    const transactionReceipt = await processTransaction(transaction, bridgeTransactionMetadata);
 
-    const approveTxSigned = await account.signTransaction(transaction);
-
-    const submittedTx = await provider.sendTransaction(approveTxSigned);
-
-    const approveReceipt = await submittedTx.wait();
-    if (approveReceipt.status != 1) {
+    if (transactionReceipt.status != 1) {
         throw Error("Funds were not claimed");
     } else {
-        console.log(amount + " of tokens were claimed.");
+        console.log(amount + " of tokens with address " + tokenAddress + " were claimed.");
     }   
 }
 
