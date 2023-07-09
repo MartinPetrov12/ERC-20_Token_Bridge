@@ -4,7 +4,6 @@ import bodyParser from 'body-parser';
 import compression from 'compression';
 import cors from 'cors'; 
 import mongoose from 'mongoose';
-// import ethers from 'ethers';
 import { Contract, Event, ethers } from 'ethers';
 import BridgeArtifact from '../../bridge/artifacts/contracts/Bridge.sol/Bridge.json';
 import fs from 'fs';
