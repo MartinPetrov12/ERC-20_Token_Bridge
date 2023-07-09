@@ -23,16 +23,16 @@ app.use('/api', eventsRoute);
 
 const server = http.createServer(app);
 
-server.listen(process.env.PORT || 8080, () => {
-  console.log("Server running on http://localhost:8080/")
-})
+// server.listen(process.env.PORT || 8080, () => {
+//   console.log("Server running on http://localhost:8080/")
+// })
 
-// const MONGO_URL = 'mongodb+srv://bridgeAdmin:bridgeAdminLime@erc20-bridge.vgpitrd.mongodb.net/?retryWrites=true&w=majority'
+const MONGO_URL = 'mongodb+srv://bridgeAdmin:bridgeAdminLime@erc20-bridge.vgpitrd.mongodb.net/?retryWrites=true&w=majority'
 
-// mongoose.Promise = Promise;
-// mongoose.connect(MONGO_URL);
+mongoose.Promise = Promise;
+mongoose.connect(MONGO_URL);
 
-// mongoose.connection.on('error', (error: Error) => console.log(error));
+mongoose.connection.on('error', (error: Error) => console.log(error));
 
 // const mumbaiAlchemyAPI = 'd0ugQFxtA7g6jQNT6x988E4_FsfSC23c';
 // const sepoliaInfuraAPI = '34e4a0562c904be6bb4b9d3a72694d7c';
