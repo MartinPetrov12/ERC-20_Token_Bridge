@@ -8,8 +8,7 @@ export const getProvider = async (bridgeNetwork: string) => {
     if(bridgeNetwork.toLowerCase() == "sepolia") {
         return new providers.InfuraProvider('sepolia', process.env.INFURA_SEPOLIA_API);
     } else if(bridgeNetwork.toLowerCase() == "maticmum") {
-        const provider = new providers.AlchemyProvider('maticmum', process.env.ALCHEMY_MUMBAI_API);
-        return provider;
+        return new providers.AlchemyProvider('maticmum', process.env.ALCHEMY_MUMBAI_API);
     } else {
        throw Error("Network " + bridgeNetwork + " is not supported.");
     }

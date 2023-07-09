@@ -1,4 +1,4 @@
-import {Contract, PopulatedTransaction, Wallet, providers} from 'ethers'
+import {Contract} from 'ethers'
 import { getProvider, getWallet } from '../utils';
 import BridgeArtifact from '../../artifacts/contracts/Bridge.sol/Bridge.json'
 import { TransactionMetadata, getContractAddress } from './TransactionMetadata';
@@ -12,9 +12,9 @@ export const getBridgeTransactionMetadata = async (network: string): Promise<Bri
     const account = await getWallet(network, provider);
     const bridgeContract = new Contract(getContractAddress(network), BridgeArtifact.abi, provider);
     return {
-        provider,
-        account,
-        bridgeContract,
-        network
+        provider: provider,
+        account: account,
+        bridgeContract: bridgeContract,
+        network: network
     }
 }

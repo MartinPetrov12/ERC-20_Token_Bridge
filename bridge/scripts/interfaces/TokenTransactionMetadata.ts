@@ -12,9 +12,9 @@ export const getTokenTransactionMetadata = async (tokenAddress: string, network:
     const account = await getWallet(network, provider);
     const tokenContract = new Contract(tokenAddress, GenericTokenArtifact.abi, provider);
     return {
-        provider,
-        account,
-        tokenContract,
-        network
+        provider: provider,
+        account: account,
+        tokenContract: tokenContract,
+        network: network
     }
 }

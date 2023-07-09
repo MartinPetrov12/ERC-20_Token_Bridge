@@ -70,7 +70,7 @@ export const decreaseClaimAmount = async (userAddress: string, wrappedTokenAddre
       }
 }
 
-export const decreaseReleaseAmount = async (userAddress: string, tokenAddress: string, amount: number, network: string) => {
+export const decreaseReleaseAndLockAmounts = async (userAddress: string, tokenAddress: string, amount: number, network: string) => {
     try {
         const filter = {
           userAddress: userAddress,
@@ -161,4 +161,3 @@ export const addTokenWrappedAddress = async(originalTokenAddress: string, wrappe
 
   return await BridgedTokenModel.updateMany(filter, update); 
 }
-
