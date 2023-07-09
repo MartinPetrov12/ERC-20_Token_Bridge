@@ -6,11 +6,10 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 // import ethers from 'ethers';
 import { Contract, Event, ethers } from 'ethers';
-import { addTokensToClaim, addTokensToRelease } from '../../bridge/scripts/mappingsSetter'
 import BridgeArtifact from '../../bridge/artifacts/contracts/Bridge.sol/Bridge.json';
 import fs from 'fs';
 import { saveEvent } from '../database/events';
-import { addLockedAmount, decreaseClaimAmount, decreaseReleaseAmount, increaseReleaseAmount } from '../database/bridgedToken'
+import { addLockedAmount, decreaseClaimAmount, decreaseReleaseAmount, increaseReleaseAmount, addTokenWrappedAddress} from '../database/bridgedToken'
 import eventsRoute from './routes/eventsRoute';  
 
 const app = express();
@@ -159,8 +158,10 @@ async function processBurnEvent(event: Event, network: string, bridgeAddress: st
   await increaseReleaseAmount(userAddress, wrappedTokenAddress, amount, network)
 }
 
-function processWrappedTokenEvent(event: Event, network: string) {
-  console.log("New wrapped contract added: " + event.args[0]);
+async function processWrappedTokenEvent(event: Event, network: string) {
+  const originalTokenAddress = event.args[0];
+  const wrappedTokenAddress = event.args[1];
+  await addTokenWrappedAddress(originalTokenAddress, wrappedTokenAddress)
 }
 
 function getLastProcessedBlock(filePath: string): number {

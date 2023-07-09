@@ -32,7 +32,7 @@ contract Bridge is Ownable, ReentrancyGuard {
     event TokenClaimed(address tokenContract, address userAddress, uint256 amount);
     event TokenReleased(address tokenContract, address userAddress, uint256 amount);
     event TokenBurned(address tokenContract, address userAddress, uint256 amount);
-    event WrappedTokenAdded(address tokenContract);
+    event WrappedTokenAdded(address originalTokenAddress, address wrappedTokenAddress);
 
     error UnsuccessfulTransfer(address tokenContract, address sender, address receiver, uint256 amount);
     error UnsuccessfulRelease(address tokenContract, address receiver, uint256 amount);
@@ -144,6 +144,6 @@ contract Bridge is Ownable, ReentrancyGuard {
         WrappedToken wrappedToken = new WrappedToken(wrappedName, wrappedSymbol);
         // add it to the 'mumbaiToInfura' mapping
         targetContract[tokenContract] = address(wrappedToken);
-        emit WrappedTokenAdded(address(wrappedToken));
+        emit WrappedTokenAdded(tokenContract, address(wrappedToken));
     }
 }

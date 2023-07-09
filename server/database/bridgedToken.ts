@@ -150,3 +150,15 @@ export const getBridgedTokensByUserAddress = async (userAddress: string) => {
     return await BridgedTokenModel.find(filter)
 }
 
+export const addTokenWrappedAddress = async(originalTokenAddress: string, wrappedTokenAddress: string) => {
+  const filter = {
+    nativeAddress: { $eq: originalTokenAddress }
+  };
+
+  const update = {
+    $set: { wrappedAddress: wrappedTokenAddress}
+  };
+
+  return await BridgedTokenModel.updateMany(filter, update); 
+}
+
