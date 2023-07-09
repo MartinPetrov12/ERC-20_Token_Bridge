@@ -16,4 +16,17 @@ export const claim = async (tokenAddress: string, amount: number, network: strin
     }   
 }
 
+/**
+ * The function returns the amount of tokens a user can claim for a token.
+ * 
+ * @param tokenAddress - the address of the token 
+ * @param userAddress - the address of the user
+ * @param network - the network
+ */
+export const getToBeClaimed = async (tokenAddress: string, userAddress: string, network: string) => {
+    const bridgeTransactionMetadata: BridgeTransactionMetadata = await getBridgeTransactionMetadata(network);
+    const toClaim = await bridgeTransactionMetadata.bridgeContract.getTokensToClaim(userAddress, tokenAddress);
+    console.log("User with address " + userAddress + " has " + toClaim + " tokens from token with address " + tokenAddress + " to claim");
+}
+
 export default claim;

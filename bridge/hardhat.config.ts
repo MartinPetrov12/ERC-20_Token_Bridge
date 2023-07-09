@@ -21,7 +21,7 @@ const config: HardhatUserConfig = {
   }
 };
 
-task("deploy-bridge", "Deploys a bridge instance", async function (hre: HardhatRuntimeEnvironment) {
+task("deploy-bridge", "Deploys a bridge instance", async function (taskArgs, hre) {
   const { bridgeDeploy } = await importScript("./scripts/deploy-bridge");
   await bridgeDeploy(hre.network.name);
 });
@@ -29,7 +29,7 @@ task("deploy-bridge", "Deploys a bridge instance", async function (hre: HardhatR
 task("deploy-token", "Deploys a token instance")
   .addParam("tokenName", "Name of the token")
   .addParam("tokenSymbol", "Symbol of the token")
-  .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
+  .setAction(async (taskArgs, hre) => {
     const { tokenDeploy } = await importScript("./scripts/deploy-token");
     await tokenDeploy(taskArgs.tokenName, taskArgs.tokenSymbol, hre.network.name);
   })
@@ -49,7 +49,7 @@ task("mint-tokens", "Mints tokens to a wallet")
   .setAction(async (taskArgs, hre) => {
     const { tokenMint } = await importScript("./scripts/tokenUtils")
     await tokenMint(taskArgs.tokenAddress, taskArgs.receiver, taskArgs.amount, hre.network.name);
-  })
+});
 
 task("approve-tokens", "Approve tokens for a spender")
   .addParam("tokenAddress", "The address of the token to lock")
@@ -58,7 +58,7 @@ task("approve-tokens", "Approve tokens for a spender")
   .setAction(async (taskArgs, hre) => {
     const {tokenApprove} = await importScript("./scripts/tokenUtils");
     await tokenApprove(taskArgs.tokenAddress, taskArgs.spender, taskArgs.amount, hre.network.name);
-  })
+});
 
 task("token-balance", "Checks users balance for a token")
   .addParam("tokenAddress", "The address of the token")
@@ -74,7 +74,7 @@ task("get-allowance", "Get token allowance")
   .addParam("spender", "Spender of the token")
   .setAction(async (taskArgs, hre) => {
     const { getTokenAllowance } = await importScript("./scripts/tokenUtils.ts");
-    await getTokenAllowance(taskArgs.tokenAddress,taskArgs.owner, taskArgs.spender,  hre.network.name,);
+    await getTokenAllowance(taskArgs.tokenAddress,taskArgs.owner, taskArgs.spender, hre.network.name);
   });
 
 task("add-token-release", "Adds an amount of tokens to be released for a user")
@@ -115,7 +115,7 @@ task("get-to-be-claimed", "Returns the amount of tokens the user is available to
   .addParam("tokenAddress", "The address of the token")
   .addParam("userAddress", "The address of the user")
   .setAction(async (taskArgs, hre) => {
-    const { getToBeClaimed } = await importScript("./scripts/deploy-token");
+    const { getToBeClaimed } = await importScript("./scripts/claim");
     await getToBeClaimed(taskArgs.tokenAddress, taskArgs.userAddress, hre.network.name);
 });
 
