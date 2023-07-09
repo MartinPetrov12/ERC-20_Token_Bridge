@@ -31,6 +31,7 @@ server.listen(process.env.PORT || 8080, () => {
 
 // mongoose.Promise = Promise;
 // mongoose.connect(MONGO_URL);
+
 // mongoose.connection.on('error', (error: Error) => console.log(error));
 
 // const mumbaiAlchemyAPI = 'd0ugQFxtA7g6jQNT6x988E4_FsfSC23c';
