@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const EventSchema = new mongoose.Schema({
+export const EventSchema = new mongoose.Schema({
     network: { type: String, required: true},
     operation: { type: String, required: true},
     userAddress: {type: String, required: true},

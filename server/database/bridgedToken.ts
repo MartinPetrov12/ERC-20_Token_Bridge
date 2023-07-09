@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const BridgedTokenSchema = new mongoose.Schema({
+export const BridgedTokenSchema = new mongoose.Schema({
     userAddress: { type: String, default: null},
     nativeAddress: {type: String, default: null},
     wrappedAddress: {type: String, default: null},
