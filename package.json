@@ -1,7 +1,9 @@
 {
-  "name": "server",
+  "name": "erc-20-token-bridge",
   "version": "1.0.0",
-  "description": "",
+  "engines": {
+    "node": "18.x"
+  },
   "main": "index.js",
   "scripts": {
     "start": "nodemon",
