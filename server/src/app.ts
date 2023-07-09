@@ -5,7 +5,7 @@ import compression from 'compression';
 import cors from 'cors'; 
 import mongoose from 'mongoose';
 import { Contract, Event, ethers } from 'ethers';
-import BridgeArtifact from '../../bridge/artifacts/contracts/Bridge.sol/Bridge.json';
+import BridgeArtifact from './artifacts/contracts/Bridge.sol/Bridge.json';
 import fs from 'fs';
 import { saveEvent } from '../database/events';
 import { addLockedAmount, decreaseClaimAmount, decreaseReleaseAmount, increaseReleaseAmount, addTokenWrappedAddress} from '../database/bridgedToken'
