@@ -47,7 +47,7 @@ const lastProcessedSepoliaBlockFilePath = "./LastProcessedSepoliaBlock.txt";
 
 async function run() {
   connectToDatabase();
-  
+
   let isMumbaiFetchingLocked = false;
   let isSepoliaFetchingLocked = false;
   let lastProcessedMumbaiBlock = getLastProcessedBlock(lastProcessedMumbaiBlockFilePath);
@@ -173,16 +173,15 @@ function getLastProcessedBlock(filePath: string): number {
 async function updateLastProcessedBlock(filePath: string, lastProcessedBlock: number) {
   fs.writeFile(filePath, lastProcessedBlock.toString(), (err) => {  
   });
-  // console.log("Finished updating");
 }
 
 
 async function connectToDatabase() {
   const MONGO_URL = 'mongodb+srv://bridgeAdmin:bridgeAdminLime@erc20-bridge.vgpitrd.mongodb.net/?retryWrites=true&w=majority'
   mongoose.Promise = Promise;
+  await mongoose.connect(MONGO_URL);
   mongoose.model('BridgedToken', BridgedTokenSchema);
   mongoose.model('Event', EventSchema);
-  await mongoose.connect(MONGO_URL);
   mongoose.connection.on('error', (error: Error) => console.log(error));
   console.log("Connected to the database");
 }
