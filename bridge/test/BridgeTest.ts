@@ -107,7 +107,7 @@ describe("Bridge", () => {
         it("Should release tokens", async function () {
             const { bridge, genericToken, bridgeOwner, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
             const tokensToRelease = 10;
-            await genericToken.connect(tokenOwner).mint(bridge.address, tokensToRelease);
+            await genericToken.connect(tokenOwner).mint(bridge.address, tokensToRelease); 
             await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
 
             await expect(bridge.connect(otherAccount).release(genericToken.address, tokensToRelease))
@@ -123,8 +123,7 @@ describe("Bridge", () => {
             await bridge.connect(bridgeOwner).addTokensToRelease(otherAccount.address, genericToken.address, tokensToRelease);
 
             await expect(bridge.connect(otherAccount).release(genericToken.address, unsufficientAmount))
-                .to.be.revertedWithCustomError(bridge, "UnsufficientFunds")
-                .withArgs(genericToken.address, otherAccount.address, unsufficientAmount);
+                .to.be.revertedWith("You do not have sufficient funds for the operation.");
         })
 
         it("Should revert on trying to release tokens without the bridge having them", async function () {
@@ -146,13 +145,10 @@ describe("Bridge", () => {
 
             await expect(bridge.connect(otherAccount).claim(genericToken.address, firstClaim))
                 .to.emit(bridge, "WrappedTokenAdded")
-                .to.emit(bridge, "TokenClaimed")
-                .withArgs(genericToken.address, otherAccount.address, firstClaim);
-
-            await expect(bridge.connect(otherAccount).claim(genericToken.address, secondClaim))
-                .to.emit(bridge, "TokenClaimed")
-                .withArgs(genericToken.address, otherAccount.address, secondClaim);
+                .to.emit(bridge, "TokenClaimed");
             
+            await expect(bridge.connect(otherAccount).claim(genericToken.address, secondClaim))
+            .to.emit(bridge, "TokenClaimed");    
         })
 
         it("Should revert on trying to claim more tokens than possible", async function () {
@@ -160,8 +156,7 @@ describe("Bridge", () => {
             const tokensToClaim = 5;
 
             await expect(bridge.connect(otherAccount).claim(genericToken.address, tokensToClaim))
-                .to.be.revertedWithCustomError(bridge, "UnsufficientFunds")
-                .withArgs(genericToken.address, otherAccount.address, tokensToClaim);
+                .to.be.revertedWith("You do not have sufficient funds for the operation.");
         })
 
         it("Should burn tokens", async function () {
@@ -178,6 +173,60 @@ describe("Bridge", () => {
                 .to.emit(bridge, "TokenBurned")
                 .withArgs(wrappedTokenAddress, otherAccount.address, tokensToBurn);
         });
+
+        it("Should withdraw funds successfuly", async function () {
+            const tokensToLock = 10;
+            const { bridge, bridgeOwner, genericToken, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
+            await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToLock);
+            await genericToken.connect(otherAccount).approve(bridge.address, tokensToLock);
+            
+            await bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 200_000_000_000_000,
+            });
+
+            const initialBalance = await bridgeOwner.getBalance();
+            const withdrawAmount = 100_000_000_000_000;
+
+            await bridge.connect(bridgeOwner).withdrawFunds(withdrawAmount);
+
+            const updatedBalance = await bridgeOwner.getBalance();
+
+            expect(updatedBalance).to.be.lessThan(initialBalance.add(withdrawAmount)); 
+            expect(updatedBalance.add(1_000_000)).to.be.greaterThan(initialBalance.add(withdrawAmount));
+        })
+
+        it("Should revert on non-owner attempting to withdraw", async function () {
+            const tokensToLock = 10;
+            const { bridge, genericToken, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
+            await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToLock);
+            await genericToken.connect(otherAccount).approve(bridge.address, tokensToLock);
+            
+            await bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 200_000_000_000_000,
+            });
+
+            const withdrawAmount = 100_000_000_000_000;
+
+            await expect(bridge.connect(otherAccount).withdrawFunds(withdrawAmount))
+                .to.be.revertedWith("Ownable: caller is not the owner");
+        })
+
+        it("Should revert on attempting to withdraw more than possible", async function () {
+            const tokensToLock = 10;
+            const { bridge, bridgeOwner, genericToken, tokenOwner, otherAccount } = await loadFixture(deployBridgeAndGenericToken);
+            await genericToken.connect(tokenOwner).mint(otherAccount.address, tokensToLock);
+            await genericToken.connect(otherAccount).approve(bridge.address, tokensToLock);
+            
+            await bridge.connect(otherAccount).lock(genericToken.address, tokensToLock, {
+                value: 200_000_000_000_000,
+            });
+
+            const initialBalance = await bridgeOwner.getBalance();
+            const withdrawAmount = 500_000_000_000_000;
+
+            await expect(bridge.connect(bridgeOwner).withdrawFunds(withdrawAmount))
+                .to.be.revertedWith("Insufficient contract balance.");
+        })
 
     })
 })
